@@ -1,0 +1,36 @@
+#! /bin/bash
+VERSION=1.0.0
+ASSEMBLER=$1
+PREFIX=$2
+
+# If no user input, print usage
+if [[ $# == 0 ]]; then
+    echo "bactopia-assembler - v${VERSION}"
+    echo ""
+    echo "bactopia-assembler <ASSEMBLER> <OPT1> ... <OPTN>"
+    echo ""
+    exit
+fi
+
+OUTDIR=results
+if [[ "$1" == "version" ]] || [[ "$1" == "--version" ]]; then
+    echo "bactopia ${VERSION}"
+    exit
+elif [ "${ASSEMBLER}" == "unicycler" ]; then
+    unicycler "${@:3}"
+    sed -r 's/^>([0-9]+)(.*)/>${PREFIX}_\\1\\2/' ${OUTDIR}/assembly.fasta > ${OUTDIR}/${PREFIX}.fna
+    mv ${OUTDIR}/assembly.gfa ${OUTDIR}/unicycler.gfa
+elif [ "${ASSEMBLER}" == "dragonflye" ]; then
+    dragonflye "${@:3}"
+    mv ${OUTDIR}/contigs.fa ${OUTDIR}/${PREFIX}.fna
+elif [ "${ASSEMBLER}" == "shovill" ]; then
+    shovill "${@:3}"
+    mv ${OUTDIR}/contigs.fa ${OUTDIR}/${PREFIX}.fna
+else
+    exit 1
+fi
+
+# Check quality of assembly
+TOTAL_CONTIGS=`grep -c "^>" ${OUTDIR}/${PREFIX}.fna || true`
+touch "total_contigs_${TOTAL_CONTIGS}"
+find ${OUTDIR} -maxdepth 1 -name "*.log" | xargs -I {} mv {} ./
